@@ -3,6 +3,15 @@ let circles = [];  // store circlepattern
 let beads = [];  //  store the beads
 let maxBeads = 5000; // set max attempts to prevent overlap
 let maxCircles = 1000;
+let song; // set song to get audio data
+let analyser; // set analyser to get amlitude data from song
+let musicStarted = false; // detect the start of music
+let button; // add a button to conrol the start and stop of music
+
+// Load the song
+function preload() {
+  song = loadSound("assets/Iwamizu-Thiely.wav");
+}
 
 
 // --- Setup ---
@@ -11,6 +20,13 @@ function setup() {
   angleMode(DEGREES);
   noLoop();// make design static unless refreshed
   initialisePatterns(); // call function for the circle and the beads
+  analyser = new p5.Amplitude();
+
+  analyser.setInput(song);
+  
+  button = createButton("Play/Pause");
+  button.position((width - button.width) / 2, height - button.height - 2);
+  button.mousePressed(play_pause);
 }
 
 
@@ -194,4 +210,15 @@ function windowResized() {
   circles = []; //clear circles
   beads = []; // clear beads
   initialisePatterns(); // regenerate patterns
+  button.position((width - button.width) / 2, height - button.height - 2);
+}
+
+function play_pause() {
+  if (song.isPlaying()) {
+    song.stop();
+    musicStarted = false;
+  } else {
+    song.loop();
+    musicStarted = true;
+  }
 }
