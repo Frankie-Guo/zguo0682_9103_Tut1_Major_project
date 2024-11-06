@@ -1,5 +1,5 @@
 // --- Global Variables ---
-let circles = [];  // store circlepattern
+let circles = [];  // store circle pattern
 let beads = [];  //  store the beads
 let maxBeads = 5000; // set max attempts to prevent overlap
 let maxCircles = 1000;
@@ -13,17 +13,17 @@ function preload() {
   song = loadSound("assets/Iwamizu-Thiely.wav");
 }
 
-
 // --- Setup ---
 function setup() {
   createCanvas(windowWidth, windowHeight);
   angleMode(DEGREES);
-  noLoop();// make design static unless refreshed
   initialisePatterns(); // call function for the circle and the beads
   analyser = new p5.Amplitude();
 
+  // Connect the input of the analyser to the song
   analyser.setInput(song);
   
+  // Add a button for the start and stop of music
   button = createButton("Play/Pause");
   button.position((width - button.width) / 2, height - button.height - 2);
   button.mousePressed(play_pause);
@@ -108,6 +108,8 @@ function initialisePatterns() {
 function draw() {
   background(10, 10, 50); //set background to navy blue
 
+  let level = musicStarted ? analyser.getLevel() : 0; // get level from song when music started
+
   // Draw each bead
   for (let bead of beads) {
     bead.display(); // display the beads
@@ -115,7 +117,7 @@ function draw() {
 
   // Draw each circle
   for (let circle of circles) {
-    circle.display(); //display the circles
+    circle.display(level); //display the circles
   }
 }
 
@@ -126,23 +128,39 @@ class CirclePattern {
     this.y = y; // y-coordinate
     this.size = size; // Diameter of the main circle
     this.numLayers = int(random(3, 6)); //random number of layers
+    this.colors = [];
+    this.initialSizes = [];
+
+    for (let i = 0; i < this.numLayers; i++){
+      this.colors.push(color(random(255), random(255),random(255)));
+      this.initialSizes.push((this.size / this.numLayers) * (i + 1));
+    }
   }
 
  //display the circles that alternate between lines and circles
-  display() {
+  display(level) {
     push(); // Save transformation
     translate(this.x, this.y); // Move origin to centre of circle
     
+    // Draw biggest circles
+    let biggestLayerSize = this.size;
+    noFill();
+    stroke(this.colors[0]);
+    strokeWeight(2);
+    ellipse(0, 0, biggestLayerSize);
+
     // Draw each layer from outside to in
-    for (let i = this.numLayers; i > 0; i--) {
-      let layerSize = (this.size / this.numLayers) * i; //decide layer diameter
-      let col = color(random(255), random(255), random(255)); // assign random colour for each layer
+    for (let i = this.numLayers - 1; i > 0; i--) {
+      let maxSize = this.size;
+      let minSize = this.initialSizes[i];
+      let layerSize = map(level, 0, 1, minSize, maxSize); // decrease radii when level increase
+      let col = this.colors[i]; // use stored color for layers
       
       // between lines and dots
       if (i % 2 == 0) {
-        this.drawDots(layerSize, col); // Even layers: draw dots
+        this.drawDots(layerSize, col, i); // Even layers: draw dots
       } else {
-        this.drawLines(layerSize, col); // Odd layers: draw lines
+        this.drawLines(layerSize, col, i); // Odd layers: draw lines
       }
     }
     
@@ -152,12 +170,12 @@ class CirclePattern {
 // Chatgpt was used to calculate the distribution of lines and dots inside each layer using methods
 
   // method to draw dots around the circumference of each layer
-  drawDots(size, col) {
-    fill(col); // Set fill color for base circle
+  drawDots(size, col, i) {
+    fill(col); 
     noStroke();
-    ellipse(0, 0, size); // Draw the base circle
+    ellipse(0, 0, size); 
 
-    let numDots = int(size / 5); // Number of dots based on layer size
+    let numDots = int(this.initialSizes[i] / 5); // Number of dots based on layer size
     let dotRadius = size / 20; // Radius of each dot
 
     fill(255); // Set dot colour to white
@@ -170,13 +188,13 @@ class CirclePattern {
   }
 
   // method to draw lines from center of circle
-  drawLines(size, col) {
+  drawLines(size, col, i) {
     stroke(col); // Set stroke colour
     strokeWeight(2);
     noFill();
     ellipse(0, 0, size); // Draw the base circle
 
-    let numLines = int(size / 5); // Number of lines based on layer size
+    let numLines = int(this.initialSizes[i] / 5); // Number of lines based on layer size
     for (let i = 0; i < numLines; i++) {
       let angle = map(i, 0, numLines, 0, 360); // use map to distribute lines evenly
       let x = cos(angle) * size / 2.5; // x coordinate endpoints
