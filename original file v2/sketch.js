@@ -69,7 +69,7 @@ function initialisePatterns() {
     attempts++;
   }
 
-// Now for the beads!!!!
+  // Now for the beads!!!!
 
   // Create small beads that avoid the main circle and eachother
   attempts = 0;
@@ -112,13 +112,15 @@ function draw() {
 
   // Draw each bead
   for (let bead of beads) {
-    bead.display(); // display the beads
+    let beadOpacity = map(level, 0, 1, 255, 50); // decrease opacity when level increase
+    let beadSize = map(level, 0, 1, bead.initialSize, 0); // decrease size when level increase
+    bead.display(beadOpacity, beadSize); // display the beads
   }
 
   // Draw each circle
   for (let circle of circles) {
     circle.display(level); //display the circles
-  }
+  } 
 }
 
 // --- CirclePattern Class ---
@@ -126,11 +128,12 @@ class CirclePattern {
   constructor(x, y, size) {
     this.x = x; // x-coordinate
     this.y = y; // y-coordinate
-    this.size = size; // Diameter of the main circle
+    this.size = size;
     this.numLayers = int(random(3, 6)); //random number of layers
-    this.colors = [];
-    this.initialSizes = [];
+    this.colors = []; // store colors for each layer
+    this.initialSizes = []; // store initial sizes for layers inside
 
+    // create colors and sizes for layers to store
     for (let i = 0; i < this.numLayers; i++){
       this.colors.push(color(random(255), random(255),random(255)));
       this.initialSizes.push((this.size / this.numLayers) * (i + 1));
@@ -151,9 +154,9 @@ class CirclePattern {
 
     // Draw each layer from outside to in
     for (let i = this.numLayers - 1; i > 0; i--) {
-      let maxSize = this.size;
-      let minSize = this.initialSizes[i];
-      let layerSize = map(level, 0, 1, minSize, maxSize); // decrease radii when level increase
+      let maxSize = this.size; // size of layers inside will not exceed the size of biggest circles 
+      let minSize = this.initialSizes[i]; // the minimal sizes are the initial sizes
+      let layerSize = map(level, 0, 1, minSize, maxSize); // increase radii when level increase
       let col = this.colors[i]; // use stored color for layers
       
       // between lines and dots
@@ -169,36 +172,36 @@ class CirclePattern {
 
 // Chatgpt was used to calculate the distribution of lines and dots inside each layer using methods
 
-  // method to draw dots around the circumference of each layer
-  drawDots(size, col, i) {
+  // method to draw dots for layers
+  drawDots(layerSize, col, i) {
     fill(col); 
     noStroke();
-    ellipse(0, 0, size); 
+    ellipse(0, 0, layerSize); 
 
-    let numDots = int(this.initialSizes[i] / 5); // Number of dots based on layer size
-    let dotRadius = size / 20; // Radius of each dot
+    let numDots = int(this.initialSizes[i] / 5); // Number of dots based on initial layer sizes
+    let dotRadius = layerSize / 20; // Radius of each dot
 
     fill(255); // Set dot colour to white
     for (let i = 0; i < numDots; i++) {
-      let angle = map(i, 0, numDots, 0, 360); // Distribute dots evenly in a circle
-      let x = cos(angle) * size / 2.5; // x-coordinate for each dot
-      let y = sin(angle) * size / 2.5; // y-coordinate for each dot
+      let angle = map(i, 0, numDots, 0, 360); // use map to distribute dots evenly in circle 
+      let x = cos(angle) * layerSize / 2.5; // x-coordinate for each dot
+      let y = sin(angle) * layerSize / 2.5; // y-coordinate for each dot
       ellipse(x, y, dotRadius); // Draw the dot
     }
   }
 
-  // method to draw lines from center of circle
-  drawLines(size, col, i) {
+  // method to draw lines for layers  
+  drawLines(layerSize, col, i) {
     stroke(col); // Set stroke colour
     strokeWeight(2);
     noFill();
-    ellipse(0, 0, size); // Draw the base circle
+    ellipse(0, 0, layerSize); // Draw the base circle
 
     let numLines = int(this.initialSizes[i] / 5); // Number of lines based on layer size
     for (let i = 0; i < numLines; i++) {
       let angle = map(i, 0, numLines, 0, 360); // use map to distribute lines evenly
-      let x = cos(angle) * size / 2.5; // x coordinate endpoints
-      let y = sin(angle) * size / 2.5; // y coordinate endpoints
+      let x = cos(angle) * layerSize / 2.5; // x coordinate endpoints
+      let y = sin(angle) * layerSize / 2.5; // y coordinate endpoints
       line(0, 0, x, y); // Draw line from centre to edge
     }
   }
@@ -207,18 +210,19 @@ class CirclePattern {
 
 // --- Bead Class ---
 class Bead {
-  constructor(x, y, size) {
+  constructor(x, y, beadSize) {
     this.x = x; // x of bead center
     this.y = y; // y of bead center
-    this.size = size; //diameter
+    this.size = beadSize; //diameter
+    this.initialSize = beadSize;
     this.color = color(255, random(100, 200), 0); //determine bead color (oranges)
   }
 
   // Display the bead as a filled circle
-  display() {
-    fill(this.color); // Set fill
+  display(beadOpacity, beadSize) {
+    fill(red(this.color), green(this.color), blue(this.color), beadOpacity); // change the opacity
     noStroke();
-    ellipse(this.x, this.y, this.size); // draw the bead
+    ellipse(this.x, this.y, beadSize); // draw the bead
   }
 }
 
@@ -231,12 +235,13 @@ function windowResized() {
   button.position((width - button.width) / 2, height - button.height - 2);
 }
 
+// 
 function play_pause() {
   if (song.isPlaying()) {
     song.stop();
     musicStarted = false;
   } else {
-    song.loop();
+    song.play();
     musicStarted = true;
   }
 }
